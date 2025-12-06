@@ -24,13 +24,21 @@ export class UsersService {
     // Hash password
     const hashedPassword = await this.authService.hashPassword(createUserDto.password);
 
+    // Build name from firstName/lastName or use name
+    const fullName = createUserDto.firstName && createUserDto.lastName
+      ? `${createUserDto.firstName} ${createUserDto.lastName}`
+      : createUserDto.name || '';
+
+    // Determine status from isActive or default to ACTIVE
+    const status = createUserDto.isActive === false ? 'INACTIVE' : 'ACTIVE';
+
     const user = await this.prisma.user.create({
       data: {
         email: createUserDto.email,
         password: hashedPassword,
-        name: createUserDto.name,
+        name: fullName,
         phone: createUserDto.phone,
-        status: 'ACTIVE',
+        status: status as any,
       },
       include: {
         roles: {
@@ -54,14 +62,26 @@ export class UsersService {
     return result;
   }
 
-  async findAll(skip = 0, take = 20, status?: string) {
-    const where = status ? { status: status as any } : {};
+  async findAll(skip = 0, take = 20, status?: string, search?: string) {
+    const where: any = {};
+    
+    if (status && status !== 'all') {
+      where.status = status as any;
+    }
+    
+    if (search) {
+      where.OR = [
+        { email: { contains: search, mode: 'insensitive' } },
+        { name: { contains: search, mode: 'insensitive' } },
+      ];
+    }
 
     const [users, total] = await Promise.all([
       this.prisma.user.findMany({
         where,
         skip,
         take,
+        orderBy: { createdAt: 'desc' },
         select: {
           id: true,
           email: true,
@@ -80,13 +100,22 @@ export class UsersService {
       this.prisma.user.count({ where }),
     ]);
 
+    const totalPages = Math.ceil(total / take);
+    const currentPage = Math.floor(skip / take) + 1;
+
     return {
       data: users,
+      meta: {
+        total,
+        page: currentPage,
+        limit: take,
+        totalPages,
+      },
       pagination: {
         total,
         skip,
         take,
-        pages: Math.ceil(total / take),
+        pages: totalPages,
       },
     };
   }
@@ -135,9 +164,31 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
+    // Build update data
+    const updateData: any = {};
+    
+    if (updateUserDto.firstName !== undefined || updateUserDto.lastName !== undefined) {
+      const firstName = updateUserDto.firstName ?? user.name.split(' ')[0];
+      const lastName = updateUserDto.lastName ?? user.name.split(' ').slice(1).join(' ');
+      updateData.name = `${firstName} ${lastName}`.trim();
+    } else if (updateUserDto.name !== undefined) {
+      updateData.name = updateUserDto.name;
+    }
+    
+    if (updateUserDto.phone !== undefined) {
+      updateData.phone = updateUserDto.phone;
+    }
+    
+    // Handle status - map isActive to status or use status directly
+    if (updateUserDto.isActive !== undefined) {
+      updateData.status = updateUserDto.isActive ? 'ACTIVE' : 'INACTIVE';
+    } else if (updateUserDto.status !== undefined) {
+      updateData.status = updateUserDto.status;
+    }
+
     const updated = await this.prisma.user.update({
       where: { id },
-      data: updateUserDto,
+      data: updateData,
       select: {
         id: true,
         email: true,

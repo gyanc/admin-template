@@ -6,18 +6,27 @@ export class FaqService {
   constructor(private prisma: PrismaService) {}
 
   async create(createFaqDto: any, userId: string) {
-    const { question, answer, category, status } = createFaqDto;
+    const { question, answer, category, status, isActive, priority } = createFaqDto;
 
-    if (!question || !answer || !category) {
-      throw new BadRequestException('Question, answer, and category are required');
+    if (!question || !answer) {
+      throw new BadRequestException('Question and answer are required');
+    }
+
+    // Map isActive to status or use status directly
+    let faqStatus = status;
+    if (isActive !== undefined) {
+      faqStatus = isActive ? 'PUBLISHED' : 'DRAFT';
+    } else if (!faqStatus) {
+      faqStatus = 'DRAFT';
     }
 
     const faq = await this.prisma.faq.create({
       data: {
         question,
         answer,
-        category,
-        status: status || 'DRAFT',
+        category: category || 'general',
+        status: faqStatus as any,
+        priority: priority || 0,
         createdById: userId,
       },
       include: { createdBy: { select: { id: true, email: true, name: true } } },
@@ -45,12 +54,23 @@ export class FaqService {
       this.prisma.faq.count({ where }),
     ]);
 
+    const totalPages = Math.ceil(total / take);
+    const currentPage = Math.floor(skip / take) + 1;
+
     return {
       data,
-      total,
-      page: Math.floor(skip / take) + 1,
-      pageSize: take,
-      totalPages: Math.ceil(total / take),
+      meta: {
+        total,
+        page: currentPage,
+        limit: take,
+        totalPages,
+      },
+      pagination: {
+        total,
+        skip,
+        take,
+        pages: totalPages,
+      },
     };
   }
 
@@ -70,12 +90,26 @@ export class FaqService {
   async update(id: string, updateFaqDto: any, userId: string) {
     await this.findOne(id); // Verify exists
 
+    // Build update data
+    const updateData: any = {};
+    
+    if (updateFaqDto.question !== undefined) updateData.question = updateFaqDto.question;
+    if (updateFaqDto.answer !== undefined) updateData.answer = updateFaqDto.answer;
+    if (updateFaqDto.category !== undefined) updateData.category = updateFaqDto.category;
+    if (updateFaqDto.priority !== undefined) updateData.priority = updateFaqDto.priority;
+    
+    // Handle status - map isActive to status or use status directly
+    if (updateFaqDto.isActive !== undefined) {
+      updateData.status = updateFaqDto.isActive ? 'PUBLISHED' : 'DRAFT';
+    } else if (updateFaqDto.status !== undefined) {
+      updateData.status = updateFaqDto.status;
+    }
+    
+    updateData.updatedById = userId;
+
     const faq = await this.prisma.faq.update({
       where: { id },
-      data: {
-        ...updateFaqDto,
-        updatedById: userId,
-      },
+      data: updateData,
       include: { createdBy: { select: { id: true, email: true } }, updatedBy: { select: { id: true, email: true } } },
     });
 

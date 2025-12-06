@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsPhoneNumber, IsEnum } from 'class-validator';
+import { IsOptional, IsString, IsPhoneNumber, IsEnum, IsBoolean } from 'class-validator';
 
 export enum UserStatusEnum {
   ACTIVE = 'ACTIVE',
@@ -13,10 +13,22 @@ export class UpdateUserDto {
   name?: string;
 
   @IsOptional()
-  @IsPhoneNumber()
+  @IsString()
+  firstName?: string;
+
+  @IsOptional()
+  @IsString()
+  lastName?: string;
+
+  @IsOptional()
+  @IsString()
   phone?: string;
 
   @IsOptional()
   @IsEnum(UserStatusEnum)
   status?: UserStatusEnum;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }

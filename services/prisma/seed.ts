@@ -51,11 +51,11 @@ async function main() {
     { resource: 'faq', action: 'delete' },
     { resource: 'faq', action: 'manage' },
     // Email templates
-    { resource: 'email_templates', action: 'create' },
-    { resource: 'email_templates', action: 'read' },
-    { resource: 'email_templates', action: 'update' },
-    { resource: 'email_templates', action: 'delete' },
-    { resource: 'email_templates', action: 'manage' },
+    { resource: 'email-templates', action: 'create' },
+    { resource: 'email-templates', action: 'read' },
+    { resource: 'email-templates', action: 'update' },
+    { resource: 'email-templates', action: 'delete' },
+    { resource: 'email-templates', action: 'manage' },
     // Settings
     { resource: 'settings', action: 'read' },
     { resource: 'settings', action: 'update' },
@@ -84,36 +84,46 @@ async function main() {
   console.log(`✅ Created ${createdPermissions.length} permissions`);
 
   // Create roles
-  const superAdminRole = await prisma.role.create({
-    data: {
+  const superAdminRole = await prisma.role.upsert({
+    where: { name: 'Super Admin' },
+    update: {},
+    create: {
       name: 'Super Admin',
       description: 'Full system access',
     },
   });
 
-  const adminRole = await prisma.role.create({
-    data: {
+  const adminRole = await prisma.role.upsert({
+    where: { name: 'Admin' },
+    update: {},
+    create: {
       name: 'Admin',
       description: 'Administrator with most permissions',
     },
   });
 
-  const contentManagerRole = await prisma.role.create({
-    data: {
+  const contentManagerRole = await prisma.role.upsert({
+    where: { name: 'Content Manager' },
+    update: {},
+    create: {
       name: 'Content Manager',
       description: 'Manages CMS pages and FAQs',
     },
   });
 
-  const staffManagerRole = await prisma.role.create({
-    data: {
+  const staffManagerRole = await prisma.role.upsert({
+    where: { name: 'Staff Manager' },
+    update: {},
+    create: {
       name: 'Staff Manager',
       description: 'Manages staff accounts',
     },
   });
 
-  const userManagerRole = await prisma.role.create({
-    data: {
+  const userManagerRole = await prisma.role.upsert({
+    where: { name: 'User Manager' },
+    update: {},
+    create: {
       name: 'User Manager',
       description: 'Manages end users',
     },
@@ -127,6 +137,7 @@ async function main() {
       roleId: superAdminRole.id,
       permissionId: perm.id,
     })),
+    skipDuplicates: true,
   });
 
   // Assign permissions to Admin (all except some)
@@ -138,6 +149,7 @@ async function main() {
       roleId: adminRole.id,
       permissionId: perm.id,
     })),
+    skipDuplicates: true,
   });
 
   // Assign permissions to Content Manager
@@ -149,6 +161,7 @@ async function main() {
       roleId: contentManagerRole.id,
       permissionId: perm.id,
     })),
+    skipDuplicates: true,
   });
 
   // Assign permissions to Staff Manager
@@ -160,6 +173,7 @@ async function main() {
       roleId: staffManagerRole.id,
       permissionId: perm.id,
     })),
+    skipDuplicates: true,
   });
 
   // Assign permissions to User Manager
@@ -171,14 +185,17 @@ async function main() {
       roleId: userManagerRole.id,
       permissionId: perm.id,
     })),
+    skipDuplicates: true,
   });
 
   console.log(`✅ Assigned permissions to roles`);
 
   // Create super admin user
   const hashedPassword = await bcrypt.hash('Admin@123', 12);
-  const superAdmin = await prisma.user.create({
-    data: {
+  const superAdmin = await prisma.user.upsert({
+    where: { email: 'superadmin@adminpanel.com' },
+    update: {},
+    create: {
       email: 'superadmin@adminpanel.com',
       password: hashedPassword,
       name: 'Super Administrator',
@@ -197,8 +214,10 @@ async function main() {
   console.log(`✅ Created super admin user: ${superAdmin.email}`);
 
   // Create staff
-  const admin = await prisma.staff.create({
-    data: {
+  const admin = await prisma.staff.upsert({
+    where: { email: 'admin@adminpanel.com' },
+    update: {},
+    create: {
       email: 'admin@adminpanel.com',
       password: hashedPassword,
       name: 'Admin Staff',
@@ -215,8 +234,10 @@ async function main() {
     },
   });
 
-  const contentManager = await prisma.staff.create({
-    data: {
+  const contentManager = await prisma.staff.upsert({
+    where: { email: 'content@adminpanel.com' },
+    update: {},
+    create: {
       email: 'content@adminpanel.com',
       password: hashedPassword,
       name: 'Content Manager',
@@ -245,6 +266,7 @@ async function main() {
       { name: 'Technical Support', priority: 5 },
       { name: 'General Questions', priority: 6 },
     ],
+    skipDuplicates: true,
   });
 
   console.log(`✅ Created FAQ categories`);
@@ -288,6 +310,7 @@ async function main() {
         category: 'file_upload',
       },
     ],
+    skipDuplicates: true,
   });
 
   console.log(`✅ Created system settings`);

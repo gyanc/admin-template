@@ -24,13 +24,33 @@ export class FaqController {
   }
 
   @Get()
+  @ApiQuery({ name: 'skip', required: false, type: Number })
+  @ApiQuery({ name: 'take', required: false, type: Number })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'category', required: false, type: String })
+  @ApiQuery({ name: 'search', required: false, type: String })
   async findAll(
-    @Query('skip') skip: string = '0',
-    @Query('take') take: string = '10',
+    @Query('skip') skip?: string,
+    @Query('take') take?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
     @Query('category') category?: string,
     @Query('search') search?: string,
   ) {
-    return this.faqService.findAll(parseInt(skip), parseInt(take), category, search);
+    // Support both skip/take and page/limit
+    let finalSkip = 0;
+    let finalTake = 10;
+    
+    if (page !== undefined && limit !== undefined) {
+      finalSkip = (parseInt(page) - 1) * parseInt(limit);
+      finalTake = parseInt(limit);
+    } else if (skip !== undefined && take !== undefined) {
+      finalSkip = parseInt(skip);
+      finalTake = parseInt(take);
+    }
+    
+    return this.faqService.findAll(finalSkip, finalTake, category, search);
   }
 
   @Get('category/:category')

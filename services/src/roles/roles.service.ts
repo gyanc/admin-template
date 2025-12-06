@@ -39,11 +39,22 @@ export class RolesService {
     return role;
   }
 
-  async findAll(skip = 0, take = 20) {
+  async findAll(skip = 0, take = 20, search?: string) {
+    const where: any = {};
+    
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
     const [roles, total] = await Promise.all([
       this.prisma.role.findMany({
+        where,
         skip,
         take,
+        orderBy: { createdAt: 'desc' },
         include: {
           permissions: {
             include: {
@@ -54,20 +65,30 @@ export class RolesService {
           staff: true,
         },
       }),
-      this.prisma.role.count(),
+      this.prisma.role.count({ where }),
     ]);
+
+    const totalPages = Math.ceil(total / take);
+    const currentPage = Math.floor(skip / take) + 1;
 
     return {
       data: roles.map((role) => ({
         ...role,
+        isActive: true, // Roles don't have isActive in schema, default to true
         userCount: role.users?.length || 0,
         staffCount: role.staff?.length || 0,
       })),
+      meta: {
+        total,
+        page: currentPage,
+        limit: take,
+        totalPages,
+      },
       pagination: {
         total,
         skip,
         take,
-        pages: Math.ceil(total / take),
+        pages: totalPages,
       },
     };
   }
@@ -92,6 +113,7 @@ export class RolesService {
 
     return {
       ...role,
+      isActive: true, // Roles don't have isActive in schema, default to true
       userCount: role.users?.length || 0,
       staffCount: role.staff?.length || 0,
     };

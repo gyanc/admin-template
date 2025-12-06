@@ -11,6 +11,7 @@ import { StaffModule } from './staff/staff.module';
 import { FaqModule } from './faq/faq.module';
 import { EmailTemplatesModule } from './email-templates/email-templates.module';
 import { SettingsModule } from './settings/settings.module';
+import { PermissionsModule } from './permissions/permissions.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { SettingsModule } from './settings/settings.module';
     UsersModule,
     StaffModule,
     RolesModule,
+    PermissionsModule,
     CmsModule,
     FaqModule,
     EmailTemplatesModule,

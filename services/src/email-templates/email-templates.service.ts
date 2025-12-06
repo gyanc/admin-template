@@ -6,18 +6,22 @@ export class EmailTemplatesService {
   constructor(private prisma: PrismaService) {}
 
   async create(createEmailTemplateDto: any, userId: string) {
-    const { name, subject, bodyHtml, bodyText, variables, triggerType } = createEmailTemplateDto;
+    const { name, subject, bodyHtml, bodyText, variables, triggerType, body } = createEmailTemplateDto;
 
-    if (!name || !subject || !bodyHtml || !bodyText || !triggerType) {
-      throw new BadRequestException('Name, subject, bodyHtml, bodyText, and triggerType are required');
+    if (!name || !subject || !triggerType) {
+      throw new BadRequestException('Name, subject, and triggerType are required');
     }
+
+    // Use body if provided, otherwise use bodyHtml/bodyText or empty strings
+    const finalBodyHtml = bodyHtml || body || '';
+    const finalBodyText = bodyText || body || '';
 
     const template = await this.prisma.emailTemplate.create({
       data: {
         name,
         subject,
-        bodyHtml,
-        bodyText,
+        bodyHtml: finalBodyHtml,
+        bodyText: finalBodyText,
         triggerType,
         variables: variables || [],
         createdById: userId,
@@ -60,12 +64,23 @@ export class EmailTemplatesService {
       this.prisma.emailTemplate.count({ where }),
     ]);
 
+    const totalPages = Math.ceil(total / take);
+    const currentPage = Math.floor(skip / take) + 1;
+
     return {
       data,
-      total,
-      page: Math.floor(skip / take) + 1,
-      pageSize: take,
-      totalPages: Math.ceil(total / take),
+      meta: {
+        total,
+        page: currentPage,
+        limit: take,
+        totalPages,
+      },
+      pagination: {
+        total,
+        skip,
+        take,
+        pages: totalPages,
+      },
     };
   }
 

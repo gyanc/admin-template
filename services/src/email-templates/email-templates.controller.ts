@@ -24,13 +24,33 @@ export class EmailTemplatesController {
   }
 
   @Get()
+  @ApiQuery({ name: 'skip', required: false, type: Number })
+  @ApiQuery({ name: 'take', required: false, type: Number })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'triggerType', required: false, type: String })
+  @ApiQuery({ name: 'search', required: false, type: String })
   async findAll(
-    @Query('skip') skip: string = '0',
-    @Query('take') take: string = '10',
+    @Query('skip') skip?: string,
+    @Query('take') take?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
     @Query('triggerType') triggerType?: string,
     @Query('search') search?: string,
   ) {
-    return this.emailTemplatesService.findAll(parseInt(skip), parseInt(take), triggerType, search);
+    // Support both skip/take and page/limit
+    let finalSkip = 0;
+    let finalTake = 10;
+    
+    if (page !== undefined && limit !== undefined) {
+      finalSkip = (parseInt(page) - 1) * parseInt(limit);
+      finalTake = parseInt(limit);
+    } else if (skip !== undefined && take !== undefined) {
+      finalSkip = parseInt(skip);
+      finalTake = parseInt(take);
+    }
+    
+    return this.emailTemplatesService.findAll(finalSkip, finalTake, triggerType, search);
   }
 
   @Get(':id')

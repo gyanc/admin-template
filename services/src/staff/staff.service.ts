@@ -10,7 +10,7 @@ export class StaffService {
   ) {}
 
   async create(createStaffDto: any) {
-    const { email, name, phone, department } = createStaffDto;
+    const { email, name, firstName, lastName, phone, department, isActive } = createStaffDto;
 
     // Check if staff already exists
     const existingStaff = await this.prisma.staff.findUnique({
@@ -21,6 +21,14 @@ export class StaffService {
       throw new BadRequestException('Staff with this email already exists');
     }
 
+    // Build name from firstName/lastName or use name
+    const fullName = firstName && lastName
+      ? `${firstName} ${lastName}`
+      : name || '';
+
+    // Determine status from isActive or default to ACTIVE
+    const status = isActive === false ? 'INACTIVE' : 'ACTIVE';
+
     // Generate temporary password
     const tempPassword = Math.random().toString(36).substring(2, 15).toUpperCase();
     const hashedPassword = await this.authService.hashPassword(tempPassword);
@@ -29,10 +37,10 @@ export class StaffService {
       data: {
         email,
         password: hashedPassword,
-        name,
+        name: fullName,
         phone,
         department,
-        status: 'ACTIVE',
+        status: status as any,
       },
       include: {
         roles: {
@@ -50,17 +58,30 @@ export class StaffService {
     };
   }
 
-  async findAll(skip = 0, take = 20, status?: string, department?: string) {
-    const where = {
-      ...(status && { status: status as any }),
-      ...(department && { department }),
-    };
+  async findAll(skip = 0, take = 20, status?: string, department?: string, search?: string) {
+    const where: any = {};
+    
+    if (status && status !== 'all') {
+      where.status = status as any;
+    }
+    
+    if (department && department !== 'all') {
+      where.department = department;
+    }
+    
+    if (search) {
+      where.OR = [
+        { email: { contains: search, mode: 'insensitive' } },
+        { name: { contains: search, mode: 'insensitive' } },
+      ];
+    }
 
     const [staff, total] = await Promise.all([
       this.prisma.staff.findMany({
         where,
         skip,
         take,
+        orderBy: { createdAt: 'desc' },
         select: {
           id: true,
           email: true,
@@ -80,13 +101,22 @@ export class StaffService {
       this.prisma.staff.count({ where }),
     ]);
 
+    const totalPages = Math.ceil(total / take);
+    const currentPage = Math.floor(skip / take) + 1;
+
     return {
       data: staff,
+      meta: {
+        total,
+        page: currentPage,
+        limit: take,
+        totalPages,
+      },
       pagination: {
         total,
         skip,
         take,
-        pages: Math.ceil(total / take),
+        pages: totalPages,
       },
     };
   }
@@ -136,9 +166,35 @@ export class StaffService {
       throw new NotFoundException('Staff not found');
     }
 
+    // Build update data
+    const updateData: any = {};
+    
+    if (updateStaffDto.firstName !== undefined || updateStaffDto.lastName !== undefined) {
+      const firstName = updateStaffDto.firstName ?? staff.name.split(' ')[0];
+      const lastName = updateStaffDto.lastName ?? staff.name.split(' ').slice(1).join(' ');
+      updateData.name = `${firstName} ${lastName}`.trim();
+    } else if (updateStaffDto.name !== undefined) {
+      updateData.name = updateStaffDto.name;
+    }
+    
+    if (updateStaffDto.phone !== undefined) {
+      updateData.phone = updateStaffDto.phone;
+    }
+    
+    if (updateStaffDto.department !== undefined) {
+      updateData.department = updateStaffDto.department;
+    }
+    
+    // Handle status - map isActive to status or use status directly
+    if (updateStaffDto.isActive !== undefined) {
+      updateData.status = updateStaffDto.isActive ? 'ACTIVE' : 'INACTIVE';
+    } else if (updateStaffDto.status !== undefined) {
+      updateData.status = updateStaffDto.status;
+    }
+
     const updated = await this.prisma.staff.update({
       where: { id },
-      data: updateStaffDto,
+      data: updateData,
       select: {
         id: true,
         email: true,

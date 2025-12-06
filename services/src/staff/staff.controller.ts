@@ -25,13 +25,35 @@ export class StaffController {
   @Get()
   @UseGuards(PermissionsGuard)
   @Permissions('staff:read')
+  @ApiQuery({ name: 'skip', required: false, type: Number })
+  @ApiQuery({ name: 'take', required: false, type: Number })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'status', required: false, type: String })
+  @ApiQuery({ name: 'department', required: false, type: String })
+  @ApiQuery({ name: 'search', required: false, type: String })
   findAll(
-    @Query('skip') skip = 0,
-    @Query('take') take = 20,
+    @Query('skip') skip?: number,
+    @Query('take') take?: number,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
     @Query('status') status?: string,
     @Query('department') department?: string,
+    @Query('search') search?: string,
   ) {
-    return this.staffService.findAll(Number(skip), Number(take), status, department);
+    // Support both skip/take and page/limit
+    let finalSkip = 0;
+    let finalTake = 20;
+    
+    if (page !== undefined && limit !== undefined) {
+      finalSkip = (Number(page) - 1) * Number(limit);
+      finalTake = Number(limit);
+    } else if (skip !== undefined && take !== undefined) {
+      finalSkip = Number(skip);
+      finalTake = Number(take);
+    }
+    
+    return this.staffService.findAll(finalSkip, finalTake, status, department, search);
   }
 
   @Get(':id')

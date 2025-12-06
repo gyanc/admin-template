@@ -6,7 +6,7 @@ export class CmsService {
   constructor(private prisma: PrismaService) {}
 
   async create(createCmsDto: any, userId: string) {
-    const { title, slug, content, seoTitle, seoDescription, seoKeywords } = createCmsDto;
+    const { title, slug, content, seoTitle, seoDescription, seoKeywords, status, isPublished } = createCmsDto;
 
     // Check if slug is unique
     const existingPage = await this.prisma.cmsPage.findUnique({
@@ -17,17 +17,21 @@ export class CmsService {
       throw new BadRequestException('Slug must be unique');
     }
 
+    // Determine status from isPublished or status
+    const pageStatus = isPublished ? 'PUBLISHED' : (status || 'DRAFT');
+
     const page = await this.prisma.cmsPage.create({
       data: {
         title,
         slug,
-        content,
-        status: 'DRAFT',
+        content: content || '',
+        status: pageStatus as any,
         seoTitle,
         seoDescription,
         seoKeywords,
         createdById: userId,
         updatedById: userId,
+        ...(pageStatus === 'PUBLISHED' && { publishedAt: new Date() }),
       },
     });
 
@@ -44,14 +48,26 @@ export class CmsService {
     return page;
   }
 
-  async findAll(skip = 0, take = 20, status?: string) {
-    const where = status ? { status: status as any } : {};
+  async findAll(skip = 0, take = 20, status?: string, search?: string) {
+    const where: any = {};
+    
+    if (status && status !== 'all') {
+      where.status = status as any;
+    }
+    
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { slug: { contains: search, mode: 'insensitive' } },
+      ];
+    }
 
     const [pages, total] = await Promise.all([
       this.prisma.cmsPage.findMany({
         where,
         skip,
         take,
+        orderBy: { createdAt: 'desc' },
         select: {
           id: true,
           title: true,
@@ -75,20 +91,26 @@ export class CmsService {
             },
           },
         },
-        orderBy: {
-          createdAt: 'desc',
-        },
       }),
       this.prisma.cmsPage.count({ where }),
     ]);
 
+    const totalPages = Math.ceil(total / take);
+    const currentPage = Math.floor(skip / take) + 1;
+
     return {
       data: pages,
+      meta: {
+        total,
+        page: currentPage,
+        limit: take,
+        totalPages,
+      },
       pagination: {
         total,
         skip,
         take,
-        pages: Math.ceil(total / take),
+        pages: totalPages,
       },
     };
   }
@@ -127,7 +149,7 @@ export class CmsService {
   }
 
   async update(id: string, updateCmsDto: any, userId: string) {
-    const { title, content, seoTitle, seoDescription, seoKeywords, slug, status } = updateCmsDto;
+    const { title, content, seoTitle, seoDescription, seoKeywords, slug, status, isPublished } = updateCmsDto;
 
     const page = await this.prisma.cmsPage.findUnique({
       where: { id },
@@ -145,6 +167,12 @@ export class CmsService {
       if (existingPage) {
         throw new BadRequestException('Slug must be unique');
       }
+    }
+
+    // Determine status from isPublished or status
+    let pageStatus = status;
+    if (isPublished !== undefined) {
+      pageStatus = isPublished ? 'PUBLISHED' : 'DRAFT';
     }
 
     // Get latest version number
@@ -167,18 +195,28 @@ export class CmsService {
       });
     }
 
+    const updateData: any = {
+      ...(title && { title }),
+      ...(content && { content }),
+      ...(slug && { slug }),
+      ...(seoTitle !== undefined && { seoTitle }),
+      ...(seoDescription !== undefined && { seoDescription }),
+      ...(seoKeywords !== undefined && { seoKeywords }),
+      updatedById: userId,
+    };
+
+    // Handle status - normalize to uppercase
+    if (pageStatus) {
+      const normalizedStatus = pageStatus.toUpperCase();
+      updateData.status = normalizedStatus as any;
+      if (normalizedStatus === 'PUBLISHED' && page.status !== 'PUBLISHED') {
+        updateData.publishedAt = new Date();
+      }
+    }
+
     const updated = await this.prisma.cmsPage.update({
       where: { id },
-      data: {
-        ...(title && { title }),
-        ...(content && { content }),
-        ...(slug && { slug }),
-        ...(seoTitle !== undefined && { seoTitle }),
-        ...(seoDescription !== undefined && { seoDescription }),
-        ...(seoKeywords !== undefined && { seoKeywords }),
-        ...(status && { status }),
-        updatedById: userId,
-      },
+      data: updateData,
       include: {
         versions: {
           orderBy: {
