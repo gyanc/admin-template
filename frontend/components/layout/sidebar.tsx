@@ -3,14 +3,28 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { navigationItems, NavItem } from '@/lib/navigation';
-import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import * as React from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import * as Icons from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 function NavItemComponent({ item, isActive, onNavigate }: { item: NavItem; isActive: boolean; onNavigate?: () => void }) {
-  const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const hasChildren = item.children && item.children.length > 0;
+  
+  // Check if any child is active
+  const hasActiveChild = item.children?.some(child => pathname === child.href);
+  
+  // Initialize state: open if has active child, otherwise closed
+  const [isOpen, setIsOpen] = useState(hasActiveChild || false);
+  
+  // Update isOpen when hasActiveChild changes (e.g., when navigating to a child page)
+  useEffect(() => {
+    if (hasActiveChild) {
+      setIsOpen(true);
+    }
+  }, [hasActiveChild, pathname]);
 
   // Map icon names to actual components
   const iconMap: { [key: string]: React.ComponentType<{ className?: string }> } = {
@@ -22,32 +36,37 @@ function NavItemComponent({ item, isActive, onNavigate }: { item: NavItem; isAct
     HelpCircle: Icons.HelpCircle,
     LayoutDashboard: Icons.LayoutDashboard,
     Shield: Icons.Shield,
+    Sliders: Icons.Sliders,
   };
 
   const IconComponent = item.icon ? iconMap[item.icon] : null;
 
   if (hasChildren) {
+    
     return (
       <div>
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg transition-colors font-medium ${
-            isOpen ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
-          }`}
+          className={cn(
+            'w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-200 font-medium text-sm',
+            isOpen || hasActiveChild
+              ? 'bg-blue-50 text-blue-700'
+              : 'text-gray-700 hover:bg-gray-100'
+          )}
         >
           <div className="flex items-center gap-3 min-w-0">
             {IconComponent && <IconComponent className="w-5 h-5 flex-shrink-0" />}
             <span className="truncate">{item.label}</span>
           </div>
-          <ChevronDown
-            className={`w-4 h-4 transition-transform flex-shrink-0 ${
-              isOpen ? 'rotate-180' : ''
-            }`}
-          />
+          {isOpen ? (
+            <ChevronDown className="w-4 h-4 transition-transform flex-shrink-0" />
+          ) : (
+            <ChevronRight className="w-4 h-4 transition-transform flex-shrink-0" />
+          )}
         </button>
 
-        {isOpen && (
-          <div className="ml-4 mt-1 space-y-1">
+        {(isOpen || hasActiveChild) && (
+          <div className="ml-4 mt-2 space-y-1 border-l-2 border-gray-200 pl-4">
             {item.children?.map((child) => {
               const childActive = pathname === child.href;
               return (
@@ -55,11 +74,12 @@ function NavItemComponent({ item, isActive, onNavigate }: { item: NavItem; isAct
                   key={child.href}
                   href={child.href || '#'}
                   onClick={onNavigate}
-                  className={`block px-4 py-2 rounded-lg text-sm transition-colors ${
+                  className={cn(
+                    'block px-4 py-2.5 rounded-lg text-sm transition-all duration-200',
                     childActive
-                      ? 'bg-blue-100 text-blue-700 font-medium'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
+                      ? 'bg-blue-100 text-blue-700 font-medium shadow-sm'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  )}
                 >
                   {child.label}
                 </Link>
@@ -75,11 +95,12 @@ function NavItemComponent({ item, isActive, onNavigate }: { item: NavItem; isAct
     <Link
       href={item.href || '#'}
       onClick={onNavigate}
-      className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors font-medium ${
+      className={cn(
+        'flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 font-medium text-sm',
         isActive
-          ? 'bg-blue-100 text-blue-700'
+          ? 'bg-blue-100 text-blue-700 shadow-sm'
           : 'text-gray-700 hover:bg-gray-100'
-      }`}
+      )}
     >
       {IconComponent && <IconComponent className="w-5 h-5 flex-shrink-0" />}
       <span className="truncate">{item.label}</span>
@@ -109,9 +130,11 @@ export function Sidebar({ onClose }: SidebarProps) {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-gray-200 p-4 text-xs text-gray-500">
-        <p className="font-semibold">Admin Panel v1.0</p>
-        <p className="mt-1">© 2025 All rights reserved</p>
+      <div className="border-t border-gray-200 p-4 bg-gray-50">
+        <div className="text-xs text-gray-500">
+          <p className="font-semibold text-gray-700 mb-1">Admin Panel v1.0</p>
+          <p className="text-xs">© 2025 All rights reserved</p>
+        </div>
       </div>
     </div>
   );

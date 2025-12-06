@@ -15,6 +15,7 @@ export interface Staff {
   email: string;
   firstName: string;
   lastName: string;
+  phone?: string;
   department?: string;
   isActive: boolean;
   createdAt: string;

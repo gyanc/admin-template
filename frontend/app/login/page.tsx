@@ -7,7 +7,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Lock, Mail, ArrowRight, Shield } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -43,81 +46,103 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50 px-4">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          {/* Logo */}
-          <div className="flex items-center justify-center mb-8">
-            <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg">
-              <span className="text-white font-bold text-lg">AP</span>
+        {/* Logo and Header */}
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center mb-4">
+            <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl shadow-lg">
+              <Shield className="w-8 h-8 text-white" />
             </div>
           </div>
-
-          <h1 className="text-2xl font-bold text-gray-900 text-center mb-2">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Admin Panel
           </h1>
-          <p className="text-gray-600 text-center mb-6">
-            Sign in to your account
+          <p className="text-gray-600">
+            Sign in to access your account
           </p>
+        </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {/* Login Card */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Email Field */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-semibold text-gray-700">
                 Email Address
-              </label>
-              <input
-                type="email"
-                {...register('email')}
-                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.email ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="admin@example.com"
-                disabled={isLoading}
-              />
+              </Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Input
+                  id="email"
+                  type="email"
+                  {...register('email')}
+                  placeholder="admin@example.com"
+                  disabled={isLoading}
+                  className={`pl-10 ${errors.email ? 'border-red-500' : ''}`}
+                />
+              </div>
               {errors.email && (
-                <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
+                <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                  <span>•</span> {errors.email.message}
+                </p>
               )}
             </div>
 
             {/* Password Field */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-sm font-semibold text-gray-700">
                 Password
-              </label>
+              </Label>
               <div className="relative">
-                <input
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Input
+                  id="password"
                   type={showPassword ? 'text' : 'password'}
                   {...register('password')}
-                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.password ? 'border-red-500' : 'border-gray-300'
-                  }`}
                   placeholder="••••••••"
                   disabled={isLoading}
+                  className={`pl-10 pr-10 ${errors.password ? 'border-red-500' : ''}`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                   tabIndex={-1}
                 >
-                  {showPassword ? '👁️' : '👁️‍🗨️'}
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
                 </button>
               </div>
               {errors.password && (
-                <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
+                <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                  <span>•</span> {errors.password.message}
+                </p>
               )}
             </div>
 
             {/* Submit Button */}
-            <button
+            <Button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium py-2 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full"
+              size="lg"
             >
-              {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-              {isLoading ? 'Signing in...' : 'Sign In'}
-            </button>
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  Sign In
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </>
+              )}
+            </Button>
           </form>
 
           {/* Staff Login Link */}
@@ -126,7 +151,7 @@ export default function LoginPage() {
               Staff member?{' '}
               <Link
                 href="/staff-login"
-                className="text-blue-600 hover:text-blue-700 font-medium"
+                className="text-blue-600 hover:text-blue-700 font-semibold transition-colors"
               >
                 Sign in here
               </Link>
@@ -134,17 +159,22 @@ export default function LoginPage() {
           </div>
 
           {/* Demo Credentials */}
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+          <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
             <p className="text-xs font-semibold text-gray-700 mb-2">Demo Credentials:</p>
             <div className="space-y-1 text-xs text-gray-600">
               <p>
-                <strong>Email:</strong> superadmin@adminpanel.com
+                <strong className="text-gray-700">Email:</strong> superadmin@adminpanel.com
               </p>
               <p>
-                <strong>Password:</strong> Admin@123
+                <strong className="text-gray-700">Password:</strong> Admin@123
               </p>
             </div>
           </div>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-8 text-center text-sm text-gray-500">
+          <p>© 2025 Admin Panel. All rights reserved.</p>
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { useRouter, useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,13 +9,16 @@ import { z } from 'zod';
 import apiClient from '@/lib/api-client';
 import { User } from '@/lib/types';
 import { toast } from 'react-hot-toast';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, User as UserIcon, Save, KeyRound, Shield, Calendar, Mail, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const updateUserSchema = z.object({
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
+  firstName: z.string().min(1, 'First name is required').min(2, 'First name must be at least 2 characters'),
+  lastName: z.string().min(1, 'Last name is required').min(2, 'Last name must be at least 2 characters'),
   isActive: z.boolean(),
 });
 
@@ -69,10 +73,22 @@ export default function UserDetailPage() {
     }
   };
 
+  const handleResetPassword = async () => {
+    if (!confirm('Are you sure you want to reset this user\'s password? A temporary password will be generated.')) return;
+    
+    try {
+      await apiClient.post(`/users/${id}/password-reset`);
+      toast.success('Password reset email sent to user');
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Failed to reset password';
+      toast.error(message);
+    }
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center min-h-screen">
+        <div className="flex items-center justify-center min-h-[60vh]">
           <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
         </div>
       </DashboardLayout>
@@ -83,7 +99,14 @@ export default function UserDetailPage() {
     return (
       <DashboardLayout>
         <div className="text-center py-12">
-          <p className="text-gray-600">User not found</p>
+          <UserIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-600 font-medium">User not found</p>
+          <Link href="/users">
+            <Button variant="outline" className="mt-4">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Users
+            </Button>
+          </Link>
         </div>
       </DashboardLayout>
     );
@@ -92,129 +115,231 @@ export default function UserDetailPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Breadcrumbs */}
+        <Breadcrumbs items={[
+          { label: 'Users', href: '/users' },
+          { label: user.firstName + ' ' + user.lastName }
+        ]} />
+
         {/* Header */}
         <div className="flex items-center gap-4">
-          <Link
-            href="/users"
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5 text-gray-600" />
+          <Link href="/users">
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
           </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Edit User</h1>
-            <p className="text-gray-600 mt-1">{user.email}</p>
+          <div className="flex-1">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-xl font-semibold">
+                {user.firstName?.[0]}{user.lastName?.[0]}
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">
+                  {user.firstName} {user.lastName}
+                </h1>
+                <p className="text-gray-600 mt-1 flex items-center gap-2">
+                  <Mail className="w-4 h-4" />
+                  {user.email}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Form */}
+        {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Form */}
-          <div className="lg:col-span-2 bg-white rounded-lg shadow p-6">
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              {/* First Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  First Name
-                </label>
-                <input
-                  type="text"
-                  {...register('firstName')}
-                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.firstName ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  disabled={isSubmitting}
-                />
-                {errors.firstName && (
-                  <p className="text-red-500 text-sm mt-1">{errors.firstName.message}</p>
-                )}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Edit Form */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <UserIcon className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Edit User Information</h2>
+                  <p className="text-sm text-gray-500 mt-1">Update user details and account status</p>
+                </div>
               </div>
 
-              {/* Last Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Last Name
-                </label>
-                <input
-                  type="text"
-                  {...register('lastName')}
-                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.lastName ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  disabled={isSubmitting}
-                />
-                {errors.lastName && (
-                  <p className="text-red-500 text-sm mt-1">{errors.lastName.message}</p>
-                )}
-              </div>
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* First Name */}
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName" className="text-sm font-semibold">
+                      First Name <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="firstName"
+                      type="text"
+                      {...register('firstName')}
+                      disabled={isSubmitting}
+                      className={errors.firstName ? 'border-red-500' : ''}
+                    />
+                    {errors.firstName && (
+                      <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                        <span>•</span> {errors.firstName.message}
+                      </p>
+                    )}
+                  </div>
 
-              {/* Active Status */}
-              <div>
-                <label className="flex items-center gap-3 cursor-pointer">
+                  {/* Last Name */}
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName" className="text-sm font-semibold">
+                      Last Name <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="lastName"
+                      type="text"
+                      {...register('lastName')}
+                      disabled={isSubmitting}
+                      className={errors.lastName ? 'border-red-500' : ''}
+                    />
+                    {errors.lastName && (
+                      <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                        <span>•</span> {errors.lastName.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Active Status */}
+                <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <input
                     type="checkbox"
+                    id="isActive"
                     {...register('isActive')}
-                    className="w-4 h-4 rounded border-gray-300"
+                    className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer"
                     disabled={isSubmitting}
                   />
-                  <span className="text-sm font-medium text-gray-700">Active</span>
-                </label>
-              </div>
+                  <div className="flex-1">
+                    <Label htmlFor="isActive" className="text-sm font-semibold text-gray-900 cursor-pointer">
+                      Active Account
+                    </Label>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {user.isActive ? 'User can log in and access the system' : 'User account is inactive'}
+                    </p>
+                  </div>
+                  {user.isActive && (
+                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                  )}
+                </div>
 
-              {/* Buttons */}
-              <div className="flex gap-3 pt-4 border-t border-gray-200">
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="flex-1 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {isSubmitting ? 'Saving...' : 'Save Changes'}
-                </button>
-                <Link
-                  href="/users"
-                  className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </Link>
-              </div>
-            </form>
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-4 border-t border-gray-200">
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="flex-1 sm:flex-none"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4 mr-2" />
+                        Save Changes
+                      </>
+                    )}
+                  </Button>
+                  <Link href="/users" className="flex-1 sm:flex-none">
+                    <Button variant="outline" className="w-full">
+                      Cancel
+                    </Button>
+                  </Link>
+                </div>
+              </form>
+            </div>
           </div>
 
-          {/* Sidebar Info */}
+          {/* Sidebar */}
           <div className="space-y-6">
-            {/* User Info */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">User Information</h3>
+            {/* User Information Card */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-200">
+                <div className="p-2 bg-gray-100 rounded-lg">
+                  <UserIcon className="w-5 h-5 text-gray-600" />
+                </div>
+                <h3 className="font-semibold text-gray-900">User Information</h3>
+              </div>
               <div className="space-y-4 text-sm">
-                <div>
-                  <p className="text-gray-600">Email</p>
-                  <p className="font-medium text-gray-900">{user.email}</p>
+                <div className="flex items-start gap-3">
+                  <Mail className="w-4 h-4 text-gray-400 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-gray-500 text-xs mb-1">Email</p>
+                    <p className="font-medium text-gray-900 truncate">{user.email}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-gray-600">Created</p>
-                  <p className="font-medium text-gray-900">
-                    {new Date(user.createdAt).toLocaleDateString()}
-                  </p>
+                <div className="flex items-start gap-3">
+                  <Calendar className="w-4 h-4 text-gray-400 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-gray-500 text-xs mb-1">Created</p>
+                    <p className="font-medium text-gray-900">
+                      {new Date(user.createdAt).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-gray-600">Last Updated</p>
-                  <p className="font-medium text-gray-900">
-                    {new Date(user.updatedAt).toLocaleDateString()}
-                  </p>
+                <div className="flex items-start gap-3">
+                  <Calendar className="w-4 h-4 text-gray-400 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-gray-500 text-xs mb-1">Last Updated</p>
+                    <p className="font-medium text-gray-900">
+                      {new Date(user.updatedAt).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className={`w-2 h-2 rounded-full mt-2 ${
+                    user.isActive ? 'bg-green-500' : 'bg-red-500'
+                  }`} />
+                  <div className="flex-1">
+                    <p className="text-gray-500 text-xs mb-1">Status</p>
+                    <p className={`font-medium ${
+                      user.isActive ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {user.isActive ? 'Active' : 'Inactive'}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Actions</h3>
+            {/* Quick Actions Card */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-200">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Shield className="w-5 h-5 text-blue-600" />
+                </div>
+                <h3 className="font-semibold text-gray-900">Quick Actions</h3>
+              </div>
               <div className="space-y-2">
-                <button className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm font-medium">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={handleResetPassword}
+                >
+                  <KeyRound className="w-4 h-4 mr-2" />
                   Reset Password
-                </button>
-                <button className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm font-medium">
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => toast.info('Role assignment coming soon')}
+                >
+                  <Shield className="w-4 h-4 mr-2" />
                   Assign Roles
-                </button>
+                </Button>
               </div>
             </div>
           </div>

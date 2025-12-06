@@ -33,6 +33,11 @@ export const navigationItems: NavItem[] = [
         href: '/roles',
         requiredPermission: 'roles:read',
       },
+      {
+        label: 'Permissions',
+        href: '/permissions',
+        requiredPermission: 'permissions:read',
+      },
     ],
   },
   {

@@ -43,6 +43,19 @@ interface DropdownMenuTriggerProps extends React.ButtonHTMLAttributes<HTMLButton
 const DropdownMenuTrigger = React.forwardRef<HTMLButtonElement, DropdownMenuTriggerProps>(
   ({ onClick, asChild, children, ...props }, ref) => {
     const { setOpen, open } = useDropdown()
+    const triggerRef = React.useRef<HTMLElement | null>(null)
+    
+    React.useEffect(() => {
+      // Remove active attribute from all triggers
+      document.querySelectorAll('[data-dropdown-trigger-active]').forEach(el => {
+        el.removeAttribute('data-dropdown-trigger-active')
+      })
+      
+      // Add active attribute to current trigger if open
+      if (open && triggerRef.current) {
+        triggerRef.current.setAttribute('data-dropdown-trigger-active', 'true')
+      }
+    }, [open])
     
     if (asChild && React.isValidElement(children)) {
       return React.cloneElement(children as React.ReactElement<any>, {
@@ -51,13 +64,21 @@ const DropdownMenuTrigger = React.forwardRef<HTMLButtonElement, DropdownMenuTrig
           const childOnClick = (children as any).props?.onClick
           if (childOnClick) childOnClick(e)
         },
-        ref,
+        ref: (node: HTMLElement | null) => {
+          triggerRef.current = node
+          if (typeof ref === 'function') ref(node as HTMLButtonElement)
+          else if (ref) (ref as React.MutableRefObject<HTMLButtonElement | null>).current = node as HTMLButtonElement
+        },
       })
     }
     
     return (
       <button
-        ref={ref}
+        ref={(node) => {
+          triggerRef.current = node
+          if (typeof ref === 'function') ref(node)
+          else if (ref) ref.current = node
+        }}
         onClick={(e) => {
           setOpen(!open)
           onClick?.(e)
@@ -71,11 +92,49 @@ const DropdownMenuTrigger = React.forwardRef<HTMLButtonElement, DropdownMenuTrig
 )
 DropdownMenuTrigger.displayName = "DropdownMenuTrigger"
 
-interface DropdownMenuContentProps extends React.HTMLAttributes<HTMLDivElement> {}
+interface DropdownMenuContentProps extends React.HTMLAttributes<HTMLDivElement> {
+  align?: 'start' | 'end' | 'center'
+}
 
 const DropdownMenuContent = React.forwardRef<HTMLDivElement, DropdownMenuContentProps>(
-  ({ className, ...props }, ref) => {
+  ({ className, align = 'start', ...props }, ref) => {
     const { open, setOpen } = useDropdown()
+    const contentRef = React.useRef<HTMLDivElement>(null)
+    const triggerRef = React.useRef<HTMLElement | null>(null)
+
+    React.useEffect(() => {
+      if (open && contentRef.current) {
+        // Find the active trigger
+        const activeTrigger = document.querySelector('[data-dropdown-trigger-active]') as HTMLElement
+        if (activeTrigger) {
+          triggerRef.current = activeTrigger
+          const rect = activeTrigger.getBoundingClientRect()
+          const content = contentRef.current
+          
+          let left = rect.left
+          let top = rect.bottom + 4
+          
+          // Adjust based on align prop
+          if (align === 'end') {
+            left = rect.right - content.offsetWidth
+          } else if (align === 'center') {
+            left = rect.left + (rect.width / 2) - (content.offsetWidth / 2)
+          }
+          
+          // Ensure it doesn't go off screen
+          if (left + content.offsetWidth > window.innerWidth) {
+            left = window.innerWidth - content.offsetWidth - 8
+          }
+          if (left < 8) {
+            left = 8
+          }
+          
+          content.style.position = 'fixed'
+          content.style.top = `${top}px`
+          content.style.left = `${left}px`
+        }
+      }
+    }, [open, align])
 
     if (!open) return null
 
@@ -86,9 +145,13 @@ const DropdownMenuContent = React.forwardRef<HTMLDivElement, DropdownMenuContent
           onClick={() => setOpen(false)}
         />
         <div
-          ref={ref}
+          ref={(node) => {
+            if (typeof ref === 'function') ref(node)
+            else if (ref) ref.current = node
+            contentRef.current = node
+          }}
           className={cn(
-            "absolute top-full mt-1 min-w-[200px] rounded-md border border-neutral-200 bg-white p-1 shadow-md z-50",
+            "min-w-[200px] rounded-md border border-neutral-200 bg-white p-1 shadow-lg z-50",
             className
           )}
           {...props}
