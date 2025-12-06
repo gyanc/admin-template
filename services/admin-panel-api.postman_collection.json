@@ -1,0 +1,1625 @@
+{
+  "info": {
+    "name": "Admin Panel API",
+    "description": "Complete RBAC Admin Panel with 9 modules and 50+ endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "admin-panel-api-2025",
+    "version": "1.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwt_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string",
+      "description": "JWT token from login response"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "User Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"Admin123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login as a regular user or admin"
+          }
+        },
+        {
+          "name": "Staff Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"Admin123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/staff-login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "staff-login"]
+            },
+            "description": "Login as staff member"
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh"]
+            },
+            "description": "Refresh access token using refresh token"
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"Admin123!\",\n  \"newPassword\": \"NewPassword123!\",\n  \"confirmPassword\": \"NewPassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/change-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "change-password"]
+            },
+            "description": "Change password for authenticated user"
+          }
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "profile"]
+            },
+            "description": "Get authenticated user's profile"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"password\": \"Password123!\",\n  \"name\": \"New User\",\n  \"phone\": \"+1234567890\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"]
+            },
+            "description": "Create a new user (requires users:create permission)"
+          }
+        },
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users?skip=0&take=20&status=active",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"],
+              "query": [
+                {
+                  "key": "skip",
+                  "value": "0"
+                },
+                {
+                  "key": "take",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all users with pagination and optional status filter"
+          }
+        },
+        {
+          "name": "Get User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/user-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "user-id"]
+            },
+            "description": "Get a specific user by ID"
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"updated@example.com\",\n  \"name\": \"Updated Name\",\n  \"phone\": \"+9876543210\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/user-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "user-id"]
+            },
+            "description": "Update user information (requires users:update permission)"
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/user-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "user-id"]
+            },
+            "description": "Delete a user (requires users:delete permission)"
+          }
+        },
+        {
+          "name": "Assign User Roles",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roleIds\": [\"role-id-1\", \"role-id-2\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/user-id/assign-roles",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "user-id", "assign-roles"]
+            },
+            "description": "Assign roles to a user (requires users:update permission)"
+          }
+        },
+        {
+          "name": "Reset User Password",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/user-id/reset-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "user-id", "reset-password"]
+            },
+            "description": "Reset user password (requires users:update permission)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Staff",
+      "item": [
+        {
+          "name": "Create Staff",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"staff@example.com\",\n  \"password\": \"Password123!\",\n  \"name\": \"Staff Member\",\n  \"department\": \"Operations\",\n  \"phone\": \"+1234567890\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/staff",
+              "host": ["{{baseUrl}}"],
+              "path": ["staff"]
+            },
+            "description": "Create a new staff member (requires staff:create permission)"
+          }
+        },
+        {
+          "name": "List Staff",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/staff?skip=0&take=20&status=active&department=Operations",
+              "host": ["{{baseUrl}}"],
+              "path": ["staff"],
+              "query": [
+                {
+                  "key": "skip",
+                  "value": "0"
+                },
+                {
+                  "key": "take",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "disabled": true
+                },
+                {
+                  "key": "department",
+                  "value": "Operations",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List all staff members with optional filters"
+          }
+        },
+        {
+          "name": "Get Staff",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/staff/staff-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["staff", "staff-id"]
+            },
+            "description": "Get a specific staff member"
+          }
+        },
+        {
+          "name": "Update Staff",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Staff Name\",\n  \"department\": \"Management\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/staff/staff-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["staff", "staff-id"]
+            },
+            "description": "Update staff information"
+          }
+        },
+        {
+          "name": "Delete Staff",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/staff/staff-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["staff", "staff-id"]
+            },
+            "description": "Delete a staff member"
+          }
+        },
+        {
+          "name": "Assign Staff Roles",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roleIds\": [\"role-id-1\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/staff/staff-id/assign-roles",
+              "host": ["{{baseUrl}}"],
+              "path": ["staff", "staff-id", "assign-roles"]
+            },
+            "description": "Assign roles to staff member"
+          }
+        },
+        {
+          "name": "Reset Staff Password",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/staff/staff-id/reset-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["staff", "staff-id", "reset-password"]
+            },
+            "description": "Reset staff password"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Roles",
+      "item": [
+        {
+          "name": "Create Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Role\",\n  \"description\": \"Description of the role\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/roles",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles"]
+            },
+            "description": "Create a new role"
+          }
+        },
+        {
+          "name": "List Roles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/roles?skip=0&take=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles"],
+              "query": [
+                {
+                  "key": "skip",
+                  "value": "0"
+                },
+                {
+                  "key": "take",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "List all roles"
+          }
+        },
+        {
+          "name": "Get Role",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/roles/role-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", "role-id"]
+            },
+            "description": "Get a specific role"
+          }
+        },
+        {
+          "name": "Update Role",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Role\",\n  \"description\": \"Updated description\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/roles/role-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", "role-id"]
+            },
+            "description": "Update a role"
+          }
+        },
+        {
+          "name": "Delete Role",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/roles/role-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", "role-id"]
+            },
+            "description": "Delete a role"
+          }
+        },
+        {
+          "name": "Assign Permissions to Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"permissionIds\": [\"permission-id-1\", \"permission-id-2\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/roles/role-id/assign-permissions",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", "role-id", "assign-permissions"]
+            },
+            "description": "Assign permissions to a role"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CMS",
+      "item": [
+        {
+          "name": "Create CMS Content",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Page Title\",\n  \"slug\": \"page-slug\",\n  \"content\": \"Page content here\",\n  \"metaDescription\": \"SEO meta description\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/cms",
+              "host": ["{{baseUrl}}"],
+              "path": ["cms"]
+            },
+            "description": "Create new CMS page"
+          }
+        },
+        {
+          "name": "List CMS Content",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/cms?skip=0&take=20&status=draft",
+              "host": ["{{baseUrl}}"],
+              "path": ["cms"],
+              "query": [
+                {
+                  "key": "skip",
+                  "value": "0"
+                },
+                {
+                  "key": "take",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "draft",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List all CMS pages with optional status filter"
+          }
+        },
+        {
+          "name": "Get CMS Content",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/cms/page-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["cms", "page-id"]
+            },
+            "description": "Get specific CMS page"
+          }
+        },
+        {
+          "name": "Update CMS Content",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Title\",\n  \"content\": \"Updated content\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/cms/page-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["cms", "page-id"]
+            },
+            "description": "Update CMS page"
+          }
+        },
+        {
+          "name": "Delete CMS Content",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/cms/page-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["cms", "page-id"]
+            },
+            "description": "Delete CMS page"
+          }
+        },
+        {
+          "name": "Publish CMS Content",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scheduledFor\": \"2025-12-25T00:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/cms/page-id/publish",
+              "host": ["{{baseUrl}}"],
+              "path": ["cms", "page-id", "publish"]
+            },
+            "description": "Publish CMS page"
+          }
+        },
+        {
+          "name": "Unpublish CMS Content",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/cms/page-id/unpublish",
+              "host": ["{{baseUrl}}"],
+              "path": ["cms", "page-id", "unpublish"]
+            },
+            "description": "Unpublish CMS page"
+          }
+        },
+        {
+          "name": "Get CMS Versions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/cms/page-id/versions",
+              "host": ["{{baseUrl}}"],
+              "path": ["cms", "page-id", "versions"]
+            },
+            "description": "Get version history of CMS page"
+          }
+        },
+        {
+          "name": "Restore CMS Version",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/cms/page-id/restore/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["cms", "page-id", "restore", "1"]
+            },
+            "description": "Restore specific version of CMS page"
+          }
+        }
+      ]
+    },
+    {
+      "name": "FAQ",
+      "item": [
+        {
+          "name": "Create FAQ",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"How do I use this?\",\n  \"answer\": \"Here's how...\",\n  \"category\": \"general\",\n  \"priority\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/faq",
+              "host": ["{{baseUrl}}"],
+              "path": ["faq"]
+            },
+            "description": "Create new FAQ"
+          }
+        },
+        {
+          "name": "List FAQ",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/faq?skip=0&take=10&category=general&search=how",
+              "host": ["{{baseUrl}}"],
+              "path": ["faq"],
+              "query": [
+                {
+                  "key": "skip",
+                  "value": "0"
+                },
+                {
+                  "key": "take",
+                  "value": "10"
+                },
+                {
+                  "key": "category",
+                  "value": "general",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "how",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List all FAQ with optional filters"
+          }
+        },
+        {
+          "name": "Get FAQ by Category",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/faq/category/general?skip=0&take=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["faq", "category", "general"],
+              "query": [
+                {
+                  "key": "skip",
+                  "value": "0"
+                },
+                {
+                  "key": "take",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get FAQ by specific category"
+          }
+        },
+        {
+          "name": "Get Single FAQ",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/faq/faq-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["faq", "faq-id"]
+            },
+            "description": "Get specific FAQ"
+          }
+        },
+        {
+          "name": "Record FAQ View",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/faq/faq-id/view",
+              "host": ["{{baseUrl}}"],
+              "path": ["faq", "faq-id", "view"]
+            },
+            "description": "Record that user viewed this FAQ"
+          }
+        },
+        {
+          "name": "Vote FAQ Helpful",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/faq/faq-id/helpful/true",
+              "host": ["{{baseUrl}}"],
+              "path": ["faq", "faq-id", "helpful", "true"]
+            },
+            "description": "Vote FAQ as helpful (true) or not helpful (false)"
+          }
+        },
+        {
+          "name": "Update FAQ",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Updated question?\",\n  \"answer\": \"Updated answer\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/faq/faq-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["faq", "faq-id"]
+            },
+            "description": "Update FAQ"
+          }
+        },
+        {
+          "name": "Update FAQ Priorities",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"faqIds\": [\"faq-id-1\", \"faq-id-2\"],\n  \"priorities\": [1, 2]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/faq/update-priorities",
+              "host": ["{{baseUrl}}"],
+              "path": ["faq", "update-priorities"]
+            },
+            "description": "Update priorities for multiple FAQs"
+          }
+        },
+        {
+          "name": "Delete FAQ",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/faq/faq-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["faq", "faq-id"]
+            },
+            "description": "Delete FAQ"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Email Templates",
+      "item": [
+        {
+          "name": "Create Email Template",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Welcome Email\",\n  \"triggerType\": \"user_signup\",\n  \"subject\": \"Welcome to Admin Panel\",\n  \"body\": \"<h1>Welcome!</h1><p>Your account has been created.</p>\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/email-templates",
+              "host": ["{{baseUrl}}"],
+              "path": ["email-templates"]
+            },
+            "description": "Create new email template"
+          }
+        },
+        {
+          "name": "List Email Templates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/email-templates?skip=0&take=10&triggerType=user_signup&search=welcome",
+              "host": ["{{baseUrl}}"],
+              "path": ["email-templates"],
+              "query": [
+                {
+                  "key": "skip",
+                  "value": "0"
+                },
+                {
+                  "key": "take",
+                  "value": "10"
+                },
+                {
+                  "key": "triggerType",
+                  "value": "user_signup",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "welcome",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List all email templates"
+          }
+        },
+        {
+          "name": "Get Email Template",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/email-templates/template-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["email-templates", "template-id"]
+            },
+            "description": "Get specific email template"
+          }
+        },
+        {
+          "name": "Get Email Template Versions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/email-templates/template-id/versions?skip=0&take=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["email-templates", "template-id", "versions"],
+              "query": [
+                {
+                  "key": "skip",
+                  "value": "0"
+                },
+                {
+                  "key": "take",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get version history of email template"
+          }
+        },
+        {
+          "name": "Update Email Template",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"Updated Subject\",\n  \"body\": \"<h1>Updated Content</h1>\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/email-templates/template-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["email-templates", "template-id"]
+            },
+            "description": "Update email template"
+          }
+        },
+        {
+          "name": "Restore Email Template Version",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/email-templates/template-id/restore/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["email-templates", "template-id", "restore", "1"]
+            },
+            "description": "Restore specific version of email template"
+          }
+        },
+        {
+          "name": "Delete Email Template",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/email-templates/template-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["email-templates", "template-id"]
+            },
+            "description": "Delete email template"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Settings",
+      "item": [
+        {
+          "name": "Get All Settings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/settings?category=app",
+              "host": ["{{baseUrl}}"],
+              "path": ["settings"],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "app",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all settings or by category"
+          }
+        },
+        {
+          "name": "Get Setting",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/settings/app_name",
+              "host": ["{{baseUrl}}"],
+              "path": ["settings", "app_name"]
+            },
+            "description": "Get specific setting by key"
+          }
+        },
+        {
+          "name": "Create Setting",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"new_setting\",\n  \"value\": \"setting_value\",\n  \"category\": \"app\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["settings"]
+            },
+            "description": "Create new setting"
+          }
+        },
+        {
+          "name": "Update Setting",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": \"updated_value\",\n  \"category\": \"app\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/settings/app_name",
+              "host": ["{{baseUrl}}"],
+              "path": ["settings", "app_name"]
+            },
+            "description": "Update setting value"
+          }
+        },
+        {
+          "name": "Bulk Update Settings",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"settings\": [\n    {\n      \"key\": \"setting_1\",\n      \"value\": \"value_1\"\n    },\n    {\n      \"key\": \"setting_2\",\n      \"value\": \"value_2\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/settings/bulk/update",
+              "host": ["{{baseUrl}}"],
+              "path": ["settings", "bulk", "update"]
+            },
+            "description": "Update multiple settings at once"
+          }
+        },
+        {
+          "name": "Delete Setting",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/settings/app_name",
+              "host": ["{{baseUrl}}"],
+              "path": ["settings", "app_name"]
+            },
+            "description": "Delete a setting"
+          }
+        }
+      ]
+    }
+  ]
+}

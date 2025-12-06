@@ -1,0 +1,365 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==================== AUTHENTICATION & USERS ====================
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  phone     String?
+  status    UserStatus @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+  lastLogin DateTime?
+  
+  // Relations
+  roles           UserRole[]
+  activityLogs    ActivityLog[]
+  createdCmsPages CmsPage[] @relation("CreatedBy")
+  updatedCmsPages CmsPage[] @relation("UpdatedBy")
+  createdFaqs     Faq[] @relation("FaqCreatedBy")
+  updatedFaqs     Faq[] @relation("FaqUpdatedBy")
+  createdTemplates EmailTemplate[] @relation("TemplateCreatedBy")
+  updatedTemplates EmailTemplate[] @relation("TemplateUpdatedBy")
+  
+  @@index([email])
+  @@index([status])
+  @@map("users")
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  DELETED
+}
+
+model Staff {
+  id         String   @id @default(uuid())
+  email      String   @unique
+  password   String
+  name       String
+  phone      String?
+  department String?
+  status     StaffStatus @default(ACTIVE)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+  lastLogin  DateTime?
+  
+  // Relations
+  roles        StaffRole[]
+  activityLogs ActivityLog[]
+  
+  @@index([email])
+  @@index([status])
+  @@index([department])
+  @@map("staff")
+}
+
+enum StaffStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+// ==================== ROLES & PERMISSIONS ====================
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  permissions RolePermission[]
+  users       UserRole[]
+  staff       StaffRole[]
+  
+  @@index([name])
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  resource    String   // e.g., "users", "cms", "faq"
+  action      String   // e.g., "create", "read", "update", "delete"
+  description String?
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  roles RolePermission[]
+  
+  @@unique([resource, action])
+  @@index([resource])
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  assignedAt   DateTime @default(now())
+  
+  // Relations
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  userId     String
+  roleId     String
+  assignedAt DateTime @default(now())
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model StaffRole {
+  staffId    String
+  roleId     String
+  assignedAt DateTime @default(now())
+  
+  // Relations
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  role  Role  @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  
+  @@id([staffId, roleId])
+  @@map("staff_roles")
+}
+
+// ==================== CMS ====================
+
+model CmsPage {
+  id                String      @id @default(uuid())
+  title             String
+  slug              String      @unique
+  content           String      @db.Text
+  status            CmsStatus   @default(DRAFT)
+  seoTitle          String?
+  seoDescription    String?     @db.VarChar(160)
+  seoKeywords       String?
+  featuredImage     String?
+  publishedAt       DateTime?
+  scheduledPublishAt DateTime?
+  createdById       String?
+  updatedById       String?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  deletedAt         DateTime?
+  
+  // Relations
+  createdBy User? @relation("CreatedBy", fields: [createdById], references: [id])
+  updatedBy User? @relation("UpdatedBy", fields: [updatedById], references: [id])
+  versions  CmsPageVersion[]
+  
+  @@index([slug])
+  @@index([status])
+  @@index([publishedAt])
+  @@map("cms_pages")
+}
+
+enum CmsStatus {
+  DRAFT
+  PUBLISHED
+  SCHEDULED
+}
+
+model CmsPageVersion {
+  id        String   @id @default(uuid())
+  pageId    String
+  version   Int
+  title     String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  
+  // Relations
+  page CmsPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  
+  @@unique([pageId, version])
+  @@index([pageId])
+  @@map("cms_page_versions")
+}
+
+// ==================== FAQ ====================
+
+model Faq {
+  id          String    @id @default(uuid())
+  question    String    @db.VarChar(500)
+  answer      String    @db.Text
+  category    String
+  status      FaqStatus @default(DRAFT)
+  priority    Int       @default(0)
+  views       Int       @default(0)
+  helpful     Int       @default(0)
+  notHelpful  Int       @default(0)
+  createdById String?
+  updatedById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  
+  // Relations
+  createdBy User? @relation("FaqCreatedBy", fields: [createdById], references: [id])
+  updatedBy User? @relation("FaqUpdatedBy", fields: [updatedById], references: [id])
+  
+  @@index([category])
+  @@index([status])
+  @@index([priority])
+  @@map("faqs")
+}
+
+enum FaqStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model FaqCategory {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  priority    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([priority])
+  @@map("faq_categories")
+}
+
+// ==================== EMAIL TEMPLATES ====================
+
+model EmailTemplate {
+  id          String              @id @default(uuid())
+  name        String              @unique
+  subject     String
+  bodyHtml    String              @db.Text
+  bodyText    String              @db.Text
+  variables   Json                // Array of variable definitions
+  triggerType EmailTriggerType
+  status      EmailTemplateStatus @default(ACTIVE)
+  version     Int                 @default(1)
+  createdById String?
+  updatedById String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  
+  // Relations
+  createdBy User? @relation("TemplateCreatedBy", fields: [createdById], references: [id])
+  updatedBy User? @relation("TemplateUpdatedBy", fields: [updatedById], references: [id])
+  versions  EmailTemplateVersion[]
+  
+  @@index([name])
+  @@index([triggerType])
+  @@map("email_templates")
+}
+
+enum EmailTriggerType {
+  PASSWORD_RESET
+  WELCOME_EMAIL
+  EMAIL_VERIFICATION
+  ACCOUNT_SUSPENDED
+  USER_CREATED
+  NEW_STAFF
+}
+
+enum EmailTemplateStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model EmailTemplateVersion {
+  id         String   @id @default(uuid())
+  templateId String
+  version    Int
+  subject    String
+  bodyHtml   String   @db.Text
+  bodyText   String   @db.Text
+  createdAt  DateTime @default(now())
+  
+  // Relations
+  template EmailTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  
+  @@unique([templateId, version])
+  @@index([templateId])
+  @@map("email_template_versions")
+}
+
+// ==================== SETTINGS ====================
+
+model Setting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     Json
+  category  String   // general, email, auth, features, file_upload
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([category])
+  @@index([key])
+  @@map("settings")
+}
+
+// ==================== AUDIT & ACTIVITY LOGS ====================
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  userId      String?
+  staffId     String?
+  action      String   // login, logout, create, update, delete
+  resource    String?  // users, cms, faq, etc.
+  resourceId  String?
+  details     Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  user  User?  @relation(fields: [userId], references: [id])
+  staff Staff? @relation(fields: [staffId], references: [id])
+  
+  @@index([userId])
+  @@index([staffId])
+  @@index([action])
+  @@index([resource])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
+
+model LoginHistory {
+  id        String   @id @default(uuid())
+  email     String
+  status    LoginStatus
+  ipAddress String?
+  userAgent String?
+  location  String?
+  createdAt DateTime @default(now())
+  
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+  @@map("login_history")
+}
+
+enum LoginStatus {
+  SUCCESS
+  FAILED
+  BLOCKED
+}
