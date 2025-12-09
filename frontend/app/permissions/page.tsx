@@ -1,14 +1,15 @@
 'use client';
 
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
-import { Breadcrumbs } from '@/components/ui/breadcrumbs';
+import { PageHeader } from '@/components/shared/page-header';
+import { ListToolbar } from '@/components/shared/list-toolbar';
+import { EmptyState } from '@/components/shared/empty-state';
 import { Permission, Role } from '@/lib/types';
 import { useState, useEffect } from 'react';
 import apiClient from '@/lib/api-client';
-import { Search, Shield, CheckSquare, Square, Loader2, Filter, Eye, Users } from 'lucide-react';
+import { CheckSquare, Square, Loader2, Eye, Users, Shield } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter, DrawerClose } from '@/components/ui/drawer';
 
@@ -34,49 +35,33 @@ export default function PermissionsPage() {
     try {
       setLoading(true);
       
-      // Fetch roles which include permissions
-      const rolesResponse = await apiClient.get('/roles?skip=0&take=1000');
-      const rolesData = rolesResponse.data?.data || rolesResponse.data || [];
-      setRoles(rolesData);
-
-      // Extract unique permissions from roles
-      const permissionsMap = new Map<string, PermissionWithRoles>();
+      // Fetch permissions directly from API
+      const permissionsResponse = await apiClient.get<any>('/permissions');
+      const permissionsData = Array.isArray(permissionsResponse.data) 
+        ? permissionsResponse.data 
+        : (permissionsResponse.data as any)?.data || [];
       
-      rolesData.forEach((role: any) => {
-        if (role.permissions) {
-          role.permissions.forEach((rp: any) => {
-            const perm = rp.permission || rp;
-            const key = `${perm.resource}:${perm.action}`;
-            
-            if (!permissionsMap.has(key)) {
-              permissionsMap.set(key, {
-                id: perm.id,
-                name: `${perm.resource}:${perm.action}`,
-                resource: perm.resource,
-                action: perm.action,
-                description: perm.description,
-                roles: [],
-                roleCount: 0,
-              });
-            }
-            
-            const permission = permissionsMap.get(key)!;
-            if (!permission.roles?.find(r => r.id === role.id)) {
-              permission.roles?.push({
-                id: role.id,
-                name: role.name,
-                description: role.description,
-                isActive: role.isActive || true,
-                createdAt: role.createdAt,
-                updatedAt: role.updatedAt,
-              });
-              permission.roleCount = (permission.roleCount || 0) + 1;
-            }
-          });
-        }
-      });
+      // Transform to match our interface
+      const transformedPermissions: PermissionWithRoles[] = permissionsData.map((perm: any) => ({
+        id: perm.id,
+        name: perm.name || `${perm.resource}:${perm.action}`,
+        resource: perm.resource,
+        action: perm.action,
+        description: perm.description,
+        roles: perm.roles || [],
+        roleCount: perm.roleCount || (perm.roles?.length || 0),
+      }));
 
-      setPermissions(Array.from(permissionsMap.values()));
+      setPermissions(transformedPermissions);
+
+      // Also fetch roles for reference
+      try {
+        const rolesResponse = await apiClient.get<any>('/roles?skip=0&take=1000');
+        const rolesData = (rolesResponse.data as any)?.data || rolesResponse.data || [];
+        setRoles(rolesData);
+      } catch (err) {
+        console.warn('Failed to fetch roles:', err);
+      }
     } catch (error) {
       console.error('Failed to fetch permissions:', error);
       toast.error('Failed to load permissions');
@@ -118,50 +103,31 @@ export default function PermissionsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Breadcrumbs */}
-        <Breadcrumbs items={[{ label: 'Permissions' }]} />
+        <PageHeader
+          title="Permissions"
+          description="View and manage system permissions and their role assignments"
+          breadcrumbs={[{ label: 'Permissions' }]}
+        />
 
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Permissions</h1>
-            <p className="text-gray-600 mt-1">
-              View and manage system permissions and their role assignments
-            </p>
-          </div>
-        </div>
-
-        {/* Filters and Search Bar */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            {/* Search */}
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <Input
-                type="text"
-                placeholder="Search permissions by name, resource, or action..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-
-            {/* Resource Filter */}
-            <Select value={resourceFilter} onValueChange={setResourceFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Filter by resource" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Resources</SelectItem>
-                {resources.map((resource) => (
-                  <SelectItem key={resource} value={resource}>
-                    {resource}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+        <ListToolbar
+          searchPlaceholder="Search permissions by name, resource, or action..."
+          searchValue={searchTerm}
+          onSearchChange={(value) => setSearchTerm(value)}
+        >
+          <Select value={resourceFilter} onValueChange={setResourceFilter}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Filter by resource" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Resources</SelectItem>
+              {resources.map((resource) => (
+                <SelectItem key={resource} value={resource}>
+                  {resource}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </ListToolbar>
 
         {/* Permissions List */}
         <div className="space-y-6">
@@ -170,15 +136,14 @@ export default function PermissionsPage() {
               <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
             </div>
           ) : Object.keys(groupedPermissions).length === 0 ? (
-            <div className="p-12 text-center bg-white rounded-xl shadow-sm border border-gray-200">
-              <Shield className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 font-medium">No permissions found</p>
-              <p className="text-gray-500 text-sm mt-1">
-                {searchTerm || resourceFilter !== 'all'
+            <EmptyState
+              title="No permissions found"
+              description={
+                searchTerm || resourceFilter !== 'all'
                   ? 'Try adjusting your filters'
-                  : 'Permissions will appear here when roles are assigned'}
-              </p>
-            </div>
+                  : 'Permissions will appear here when roles are assigned'
+              }
+            />
           ) : (
             Object.entries(groupedPermissions).map(([resource, resourcePermissions]) => (
               <div key={resource} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">

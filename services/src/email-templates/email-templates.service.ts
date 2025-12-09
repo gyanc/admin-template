@@ -1,9 +1,27 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
+// Valid email trigger types from Prisma schema
+type EmailTriggerTypeValue = 'PASSWORD_RESET' | 'WELCOME_EMAIL' | 'EMAIL_VERIFICATION' | 'ACCOUNT_SUSPENDED' | 'USER_CREATED' | 'NEW_STAFF';
+
+const VALID_TRIGGER_TYPES = ['PASSWORD_RESET', 'WELCOME_EMAIL', 'EMAIL_VERIFICATION', 'ACCOUNT_SUSPENDED', 'USER_CREATED', 'NEW_STAFF'] as const;
+
 @Injectable()
 export class EmailTemplatesService {
   constructor(private prisma: PrismaService) {}
+
+  private validateTriggerType(triggerType: string): EmailTriggerTypeValue {
+    // Normalize input (convert spaces to underscores, uppercase)
+    const normalized = triggerType?.toUpperCase().replace(/\s+/g, '_');
+    
+    if (!VALID_TRIGGER_TYPES.includes(normalized as any)) {
+      throw new BadRequestException(
+        `Invalid triggerType: ${triggerType}. Valid values are: ${VALID_TRIGGER_TYPES.join(', ')}`
+      );
+    }
+    
+    return normalized as EmailTriggerTypeValue;
+  }
 
   async create(createEmailTemplateDto: any, userId: string) {
     const { name, subject, bodyHtml, bodyText, variables, triggerType, body } = createEmailTemplateDto;
@@ -11,6 +29,9 @@ export class EmailTemplatesService {
     if (!name || !subject || !triggerType) {
       throw new BadRequestException('Name, subject, and triggerType are required');
     }
+
+    // Validate and normalize triggerType
+    const validatedTriggerType = this.validateTriggerType(triggerType);
 
     // Use body if provided, otherwise use bodyHtml/bodyText or empty strings
     const finalBodyHtml = bodyHtml || body || '';
@@ -22,15 +43,15 @@ export class EmailTemplatesService {
         subject,
         bodyHtml: finalBodyHtml,
         bodyText: finalBodyText,
-        triggerType,
+        triggerType: validatedTriggerType,
         variables: variables || [],
         createdById: userId,
         versions: {
           create: {
             version: 1,
             subject,
-            bodyHtml,
-            bodyText,
+            bodyHtml: finalBodyHtml,
+            bodyText: finalBodyText,
           },
         },
       },
@@ -106,6 +127,9 @@ export class EmailTemplatesService {
 
     const { name, subject, bodyHtml, bodyText, triggerType, variables } = updateEmailTemplateDto;
 
+    // Validate and normalize triggerType if provided
+    const validatedTriggerType = triggerType ? this.validateTriggerType(triggerType) : undefined;
+
     const latestVersion = template.versions[0];
 
     // Create new version if content changed
@@ -128,6 +152,7 @@ export class EmailTemplatesService {
         ...(subject && { subject }),
         ...(bodyHtml && { bodyHtml }),
         ...(bodyText && { bodyText }),
+        ...(validatedTriggerType && { triggerType: validatedTriggerType }),
         ...(triggerType && { triggerType }),
         ...(variables && { variables }),
         updatedById: userId,

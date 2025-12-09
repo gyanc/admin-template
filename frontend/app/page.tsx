@@ -1,27 +1,11 @@
-'use client';
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth/session";
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context';
-import { Loader2 } from 'lucide-react';
+export default async function Home() {
+  const session = await getSession();
+  if (session) {
+    redirect("/dashboard");
+  }
 
-export default function Home() {
-  const router = useRouter();
-  const { isAuthenticated, loading } = useAuth();
-
-  useEffect(() => {
-    if (!loading) {
-      if (isAuthenticated) {
-        router.push('/dashboard');
-      } else {
-        router.push('/login');
-      }
-    }
-  }, [isAuthenticated, loading, router]);
-
-  return (
-    <div className="flex items-center justify-center min-h-screen">
-      <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-    </div>
-  );
+  redirect("/login");
 }

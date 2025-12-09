@@ -207,6 +207,110 @@ export class AuthService {
     return bcrypt.hash(password, saltRounds);
   }
 
+  async getUserProfile(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        roles: {
+          include: {
+            role: {
+              include: {
+                permissions: {
+                  include: {
+                    permission: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    // Transform to match frontend expected structure
+    const nameParts = user.name.split(' ');
+    return {
+      id: user.id,
+      email: user.email,
+      firstName: nameParts[0] || '',
+      lastName: nameParts.slice(1).join(' ') || '',
+      isActive: user.status === 'ACTIVE',
+      createdAt: user.createdAt.toISOString(),
+      updatedAt: user.updatedAt.toISOString(),
+      roles: user.roles.map((ur) => ({
+        id: ur.role.id,
+        name: ur.role.name,
+        description: ur.role.description,
+        isActive: true, // Roles don't have isActive field in schema, default to true
+        createdAt: ur.role.createdAt.toISOString(),
+        updatedAt: ur.role.updatedAt.toISOString(),
+        permissions: ur.role.permissions.map((rp) => ({
+          id: rp.permission.id,
+          resource: rp.permission.resource,
+          action: rp.permission.action,
+          description: rp.permission.description,
+        })),
+      })),
+    };
+  }
+
+  async getStaffProfile(staffId: string) {
+    const staff = await this.prisma.staff.findUnique({
+      where: { id: staffId },
+      include: {
+        roles: {
+          include: {
+            role: {
+              include: {
+                permissions: {
+                  include: {
+                    permission: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!staff) {
+      throw new UnauthorizedException('Staff not found');
+    }
+
+    // Transform to match frontend expected structure
+    const nameParts = staff.name.split(' ');
+    return {
+      id: staff.id,
+      email: staff.email,
+      firstName: nameParts[0] || '',
+      lastName: nameParts.slice(1).join(' ') || '',
+      phone: staff.phone,
+      department: staff.department,
+      isActive: staff.status === 'ACTIVE',
+      createdAt: staff.createdAt.toISOString(),
+      updatedAt: staff.updatedAt.toISOString(),
+      roles: staff.roles.map((sr) => ({
+        id: sr.role.id,
+        name: sr.role.name,
+        description: sr.role.description,
+        isActive: true, // Roles don't have isActive field in schema, default to true
+        createdAt: sr.role.createdAt.toISOString(),
+        updatedAt: sr.role.updatedAt.toISOString(),
+        permissions: sr.role.permissions.map((rp) => ({
+          id: rp.permission.id,
+          resource: rp.permission.resource,
+          action: rp.permission.action,
+          description: rp.permission.description,
+        })),
+      })),
+    };
+  }
+
   private async generateTokens(userId: string, email: string, type: 'user' | 'staff') {
     const payload = { sub: userId, email, type };
 

@@ -13,6 +13,7 @@ export const navigationItems: NavItem[] = [
     label: 'Dashboard',
     href: '/dashboard',
     icon: 'LayoutDashboard',
+    // No requiredPermission - always visible
   },
   {
     label: 'Management',
@@ -65,7 +66,13 @@ export const navigationItems: NavItem[] = [
     label: 'Settings',
     href: '/settings',
     icon: 'Sliders',
-    requiredPermission: 'settings:read',
+    // Make settings optional - show if user has permission or if no permission required
+  },
+  {
+    label: 'Profile',
+    href: '/profile',
+    icon: 'User',
+    // Profile is always accessible to logged-in users
   },
 ];
 

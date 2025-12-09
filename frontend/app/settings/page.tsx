@@ -149,15 +149,32 @@ export default function SettingsPage() {
     if (!editingSetting) return;
 
     try {
+      // Parse value based on type - keep as string for API
+      let parsedValue: string = data.value;
+      if (editingSetting.type === 'json') {
+        try {
+          JSON.parse(data.value);
+          // Keep as string, API will parse it
+        } catch {
+          throw new Error('Invalid JSON format');
+        }
+      } else if (editingSetting.type === 'boolean') {
+        // Convert boolean to string representation
+        parsedValue = String(data.value === 'true');
+      } else if (editingSetting.type === 'number') {
+        // Keep as string, API will parse it
+        parsedValue = String(data.value);
+      }
+
       await apiClient.put(`/settings/${editingSetting.key}`, {
-        value: data.value,
-        category: editingSetting.type === 'json' ? 'general' : undefined,
+        value: parsedValue,
+        category: editingSetting.category || 'general',
       });
       toast.success('Setting updated successfully');
       setDrawerOpen(false);
       fetchSettings();
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Failed to update setting';
+      const message = error.response?.data?.message || error.message || 'Failed to update setting';
       toast.error(message);
     }
   };

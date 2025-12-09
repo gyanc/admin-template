@@ -133,6 +133,7 @@ export interface Setting {
   value: string;
   description?: string;
   type: 'string' | 'number' | 'boolean' | 'json';
+  category?: string;
   updatedAt: string;
 }
 

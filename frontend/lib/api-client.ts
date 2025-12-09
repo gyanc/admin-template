@@ -1,149 +1,169 @@
-import axios, { AxiosInstance, AxiosError } from 'axios';
-import { toast } from 'react-hot-toast';
+import { toast } from "react-hot-toast";
 
-// API Response types
-export interface ApiResponse<T = any> {
-  success: boolean;
-  message: string;
-  data?: T;
-  errors?: Record<string, string[]>;
+export const API_BASE =
+  process.env.API_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:3000";
+
+type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+
+interface ApiClientOptions {
+  headers?: Record<string, string>;
+  body?: unknown;
+  cache?: RequestCache;
+  auth?: boolean;
+  // Querystring parameters (axios-style alias: params)
+  query?: Record<string, unknown>;
+  params?: Record<string, unknown>;
 }
 
-// Token storage keys
-const ACCESS_TOKEN_KEY = 'access_token';
-const REFRESH_TOKEN_KEY = 'refresh_token';
+export interface ApiClientResponse<T = any> {
+  data: T;
+  status: number;
+  ok: boolean;
+  headers: Headers;
+}
 
-// Create axios instance
-const apiClient: AxiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || (() => {
-    if (typeof window !== 'undefined') {
-      const hostname = window.location.hostname;
-      // Use the same host as the frontend, port 3000
-      return `http://${hostname}:3000`;
+const isServer = typeof window === "undefined";
+const ACCESS_COOKIE = "access_token";
+
+function getBrowserAccessToken(): string | null {
+  if (typeof document === "undefined") return null;
+  const parts = document.cookie.split("; ").filter(Boolean);
+  const raw = parts.find((c) => c.startsWith(`${ACCESS_COOKIE}=`));
+  if (!raw) return null;
+  const [, value] = raw.split("=");
+  return decodeURIComponent(value);
     }
-    return 'http://localhost:3000';
-  })(),
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
 
-// Request interceptor - Add token to headers
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = getAccessToken();
+function buildHeaders(
+  custom?: Record<string, string>,
+  includeAuth = true
+): HeadersInit {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...custom,
+  };
+
+  // In the browser, automatically attach Authorization from access_token cookie
+  if (!isServer && includeAuth && !headers.Authorization) {
+    const token = getBrowserAccessToken();
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      headers.Authorization = `Bearer ${token}`;
     }
-    return config;
+  }
+
+  return headers;
+  }
+
+async function handleResponse<T>(
+  response: Response
+): Promise<ApiClientResponse<T>> {
+  let payload: T | null = null;
+  try {
+    payload = (await response.json()) as T;
+  } catch {
+    // ignore parse errors for empty bodies
+  }
+
+  return {
+    data: payload as T,
+    status: response.status,
+    ok: response.ok,
+    headers: response.headers,
+  };
+        }
+
+async function request<T>(
+  path: string,
+  method: HttpMethod,
+  options: ApiClientOptions = {}
+): Promise<ApiClientResponse<T>> {
+  const {
+    headers,
+    body,
+    cache = "no-store",
+    auth = true,
+    query,
+    params,
+  } = options;
+
+  const searchParams = new URLSearchParams();
+  const qp = query || params;
+  if (qp) {
+    Object.entries(qp).forEach(([key, value]) => {
+      if (value === undefined || value === null) return;
+      searchParams.append(key, String(value));
+    });
+  }
+
+  const url =
+    searchParams.toString().length > 0
+      ? `${API_BASE}${path}?${searchParams.toString()}`
+      : `${API_BASE}${path}`;
+
+  const response = await fetch(url, {
+    method,
+    headers: buildHeaders(headers, auth),
+    body: body ? JSON.stringify(body) : undefined,
+    cache,
+    credentials: "include",
+  });
+
+  const handled = await handleResponse<T>(response);
+
+  if (!handled.ok) {
+    // Axios-style error object so existing catch blocks keep working
+    const error: any = new Error("API request failed");
+    error.response = {
+      status: handled.status,
+      data: handled.data,
+    };
+
+    if (!isServer) {
+      // Client-side toasts and actions for common errors
+      if (handled.status === 401) {
+        toast.error("Session expired. Please sign in again.");
+        // Clear auth cookies
+        if (typeof document !== "undefined") {
+          document.cookie = `${ACCESS_COOKIE}=; Max-Age=0; Path=/`;
+          document.cookie = `refresh_token=; Max-Age=0; Path=/`;
+        }
+        // Redirect to login
+        if (typeof window !== "undefined") {
+          window.location.href = "/login";
+        }
+      } else if (handled.status === 403) {
+        toast.error("You do not have permission to access this resource.");
+      } else if (handled.status === 404) {
+        toast.error("Resource not found.");
+      } else if (handled.status >= 500) {
+        toast.error("Server error. Please try again later.");
+    }
+    }
+
+    throw error;
+  }
+
+  return handled;
+}
+
+export const apiClient = {
+  async get<T>(path: string, options?: ApiClientOptions) {
+    return request<T>(path, "GET", options);
   },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Response interceptor - Handle token refresh and errors
-apiClient.interceptors.response.use(
-  (response) => response,
-  async (error: AxiosError) => {
-    const originalRequest = error.config as any;
-
-    // Handle 401 Unauthorized - try to refresh token
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-
-      try {
-        const refreshToken = getRefreshToken();
-        if (!refreshToken) {
-          throw new Error('No refresh token available');
-        }
-
-        // Call refresh endpoint
-        const response = await axios.post(
-          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/auth/refresh`,
-          { refreshToken }
-        );
-
-        const { data } = response.data as ApiResponse<{ accessToken: string; refreshToken: string }>;
-        
-        if (data) {
-          setAccessToken(data.accessToken);
-          if (data.refreshToken) {
-            setRefreshToken(data.refreshToken);
-          }
-
-          // Retry original request with new token
-          originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
-          return apiClient(originalRequest);
-        }
-      } catch (refreshError) {
-        // Refresh failed, redirect to login
-        clearAuthTokens();
-        window.location.href = '/login';
-        return Promise.reject(refreshError);
-      }
-    }
-
-    // Handle other errors
-    if (error.response?.status === 403) {
-      toast.error('Access denied. You do not have permission to access this resource.');
-    } else if (error.response?.status === 404) {
-      toast.error('Resource not found.');
-    } else if (error.response?.status === 422) {
-      // Validation error
-      const apiError = error.response.data as ApiResponse;
-      if (apiError.errors) {
-        const errorMessages = Object.values(apiError.errors).flat();
-        toast.error(errorMessages[0] || apiError.message || 'Validation error');
-      } else {
-        toast.error(apiError.message || 'Validation error');
-      }
-    } else if (error.response?.status === 500) {
-      toast.error('Server error. Please try again later.');
-    } else if (error.message === 'Network Error') {
-      toast.error('Network error. Please check your connection.');
-    }
-
-    return Promise.reject(error);
-  }
-);
-
-// Token management functions
-export function setAccessToken(token: string): void {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(ACCESS_TOKEN_KEY, token);
-  }
-}
-
-export function getAccessToken(): string | null {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem(ACCESS_TOKEN_KEY);
-  }
-  return null;
-}
-
-export function setRefreshToken(token: string): void {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(REFRESH_TOKEN_KEY, token);
-  }
-}
-
-export function getRefreshToken(): string | null {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem(REFRESH_TOKEN_KEY);
-  }
-  return null;
-}
-
-export function clearAuthTokens(): void {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
-  }
-}
-
-export function isAuthenticated(): boolean {
-  return getAccessToken() !== null;
-}
+  async post<T>(path: string, body?: unknown, options?: ApiClientOptions) {
+    return request<T>(path, "POST", { ...options, body });
+  },
+  async put<T>(path: string, body?: unknown, options?: ApiClientOptions) {
+    return request<T>(path, "PUT", { ...options, body });
+  },
+  async patch<T>(path: string, body?: unknown, options?: ApiClientOptions) {
+    return request<T>(path, "PATCH", { ...options, body });
+  },
+  async delete<T>(path: string, options?: ApiClientOptions) {
+    return request<T>(path, "DELETE", options);
+  },
+};
 
 export default apiClient;

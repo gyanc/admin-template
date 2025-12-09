@@ -47,12 +47,34 @@ export default function UserDetailPage() {
     try {
       setLoading(true);
       const response = await apiClient.get<{ data: User }>(`/users/${id}`);
-      const userData = response.data.data;
-      setUser(userData);
+      const userData = response.data.data || response.data;
+      
+      // Normalize user data - handle name field
+      let firstName = userData.firstName;
+      let lastName = userData.lastName;
+      
+      if (!firstName && !lastName && userData.name) {
+        const nameParts = (userData.name || '').split(' ');
+        firstName = nameParts[0] || '';
+        lastName = nameParts.slice(1).join(' ') || '';
+      }
+      
+      const isActive = userData.isActive !== undefined 
+        ? userData.isActive 
+        : (userData.status === 'ACTIVE' || userData.status === 'active');
+      
+      const normalizedUser = {
+        ...userData,
+        firstName: firstName || '',
+        lastName: lastName || '',
+        isActive,
+      };
+      
+      setUser(normalizedUser);
       reset({
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        isActive: userData.isActive,
+        firstName: normalizedUser.firstName,
+        lastName: normalizedUser.lastName,
+        isActive: normalizedUser.isActive,
       });
     } catch (error) {
       toast.error('Failed to load user');
@@ -77,7 +99,7 @@ export default function UserDetailPage() {
     if (!confirm('Are you sure you want to reset this user\'s password? A temporary password will be generated.')) return;
     
     try {
-      await apiClient.post(`/users/${id}/password-reset`);
+      await apiClient.post(`/users/${id}/reset-password`);
       toast.success('Password reset email sent to user');
     } catch (error: any) {
       const message = error.response?.data?.message || 'Failed to reset password';

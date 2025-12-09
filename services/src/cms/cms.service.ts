@@ -19,12 +19,15 @@ export class CmsService {
 
     // Determine status from isPublished or status
     const pageStatus = isPublished ? 'PUBLISHED' : (status || 'DRAFT');
+    
+    // Ensure content is a string
+    const finalContent = content || '';
 
     const page = await this.prisma.cmsPage.create({
       data: {
         title,
         slug,
-        content: content || '',
+        content: finalContent,
         status: pageStatus as any,
         seoTitle,
         seoDescription,
@@ -41,7 +44,7 @@ export class CmsService {
         pageId: page.id,
         version: 1,
         title,
-        content,
+        content: finalContent,
       },
     });
 

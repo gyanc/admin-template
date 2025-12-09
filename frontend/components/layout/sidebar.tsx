@@ -2,20 +2,32 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { navigationItems, NavItem } from '@/lib/navigation';
+import { NavItem } from '@/lib/navigation';
 import { useState, useEffect } from 'react';
 import * as React from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useNavigation } from '@/lib/hooks/use-navigation';
 
-function NavItemComponent({ item, isActive, onNavigate }: { item: NavItem; isActive: boolean; onNavigate?: () => void }) {
+function NavItemComponent({
+  item,
+  isActive,
+  onNavigate,
+}: {
+  item: NavItem;
+  isActive: boolean;
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
   const hasChildren = item.children && item.children.length > 0;
-  
+
+  // Children are already filtered by permissions in useNavigation
+  const visibleChildren = item.children || [];
+
   // Check if any child is active
-  const hasActiveChild = item.children?.some(child => pathname === child.href);
-  
+  const hasActiveChild = visibleChildren.some((child) => pathname === child.href);
+
   // Initialize state: open if has active child, otherwise closed
   const [isOpen, setIsOpen] = useState(hasActiveChild || false);
   
@@ -37,6 +49,7 @@ function NavItemComponent({ item, isActive, onNavigate }: { item: NavItem; isAct
     LayoutDashboard: Icons.LayoutDashboard,
     Shield: Icons.Shield,
     Sliders: Icons.Sliders,
+    User: Icons.User,
   };
 
   const IconComponent = item.icon ? iconMap[item.icon] : null;
@@ -67,7 +80,7 @@ function NavItemComponent({ item, isActive, onNavigate }: { item: NavItem; isAct
 
         {(isOpen || hasActiveChild) && (
           <div className="ml-4 mt-2 space-y-1 border-l-2 border-gray-200 pl-4">
-            {item.children?.map((child) => {
+            {visibleChildren.map((child) => {
               const childActive = pathname === child.href;
               return (
                 <Link
@@ -114,12 +127,13 @@ interface SidebarProps {
 
 export function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname();
+  const navigation = useNavigation();
 
   return (
     <div className="flex flex-col h-full bg-white overflow-y-auto">
       {/* Navigation items */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {navigationItems.map((item) => (
+        {navigation.map((item) => (
           <NavItemComponent
             key={item.label}
             item={item}

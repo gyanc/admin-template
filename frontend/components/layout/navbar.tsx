@@ -15,6 +15,7 @@ interface NavbarProps {
 export function Navbar({ sidebarOpen, setSidebarOpen }: NavbarProps) {
   const { user, logout } = useAuth();
   const [searchOpen, setSearchOpen] = useState(false);
+  const initials = `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`.trim() || 'AP';
 
   return (
     <nav className="h-16 border-b border-gray-200 bg-white sticky top-0 z-50 flex items-center justify-between px-4 sm:px-6 shadow-sm">
@@ -72,7 +73,7 @@ export function Navbar({ sidebarOpen, setSidebarOpen }: NavbarProps) {
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-2 px-2 sm:px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors">
               <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex-shrink-0 text-white text-sm font-semibold">
-                {user?.firstName?.[0]}{user?.lastName?.[0]}
+                {initials}
               </div>
               <div className="text-sm text-left hidden sm:block">
                 <p className="font-medium text-gray-900 truncate max-w-[120px]">
